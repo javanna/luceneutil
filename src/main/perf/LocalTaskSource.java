@@ -138,6 +138,8 @@ class LocalTaskSource implements TaskSource {
     List<SearchTask> highTerms = new ArrayList<>();
     List<SearchTask> medTerms = new ArrayList<>();
     List<SearchTask> lowTerms = new ArrayList<>();
+    List<SearchTask> prefixTasks = new ArrayList<>();
+    List<SearchTask> wildcardTasks = new ArrayList<>();
     while (true) {
       String line = taskFile.readLine();
       if (line == null) {
@@ -170,34 +172,51 @@ class LocalTaskSource implements TaskSource {
         if (searchTask.getCategory().equals("HighTerm")) {
           highTerms.add(searchTask);
         }
+        if (searchTask.getCategory().equals("Prefix3")) {
+          prefixTasks.add(searchTask);
+        }
+        if (searchTask.getCategory().equals("Wildcard")) {
+          wildcardTasks.add(searchTask);
+        }
       }
     }
 
-    for (SearchTask nrqTask : intNRQ) {
+    combineTasks(intNRQ, highTerms, medTerms, lowTerms, tasks, taskParser, "IntNRQ");
+
+    combineTasks(prefixTasks, highTerms, medTerms, lowTerms, tasks, taskParser, "Prefix");
+
+    combineTasks(wildcardTasks, highTerms, medTerms, lowTerms, tasks, taskParser, "Wildcard");
+
+    taskFile.close();
+    return tasks;
+  }
+
+  private static void combineTasks(List<SearchTask> baseTasks, List<SearchTask> highTerms,
+                                   List<SearchTask> medTerms, List<SearchTask> lowTerms,
+                                   List<Task> tasks, TaskParser taskParser, String prefix) {
+    for (SearchTask prefixTask : baseTasks) {
       for (SearchTask highTerm : highTerms) {
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
-        builder.add(nrqTask.q, BooleanClause.Occur.MUST);
+        builder.add(prefixTask.q, BooleanClause.Occur.MUST);
         builder.add(highTerm.q, BooleanClause.Occur.MUST);
-        tasks.add(new SearchTask("IntNRQConjHighTerm", builder.build(), nrqTask.s, null, taskParser.topN, false,
+        tasks.add(new SearchTask(prefix + "ConjHighTerm", builder.build(), prefixTask.s, null, taskParser.topN, false,
                 false, Collections.<String>emptyList(), false));
       }
       for (SearchTask medTerm : medTerms) {
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
-        builder.add(nrqTask.q, BooleanClause.Occur.MUST);
+        builder.add(prefixTask.q, BooleanClause.Occur.MUST);
         builder.add(medTerm.q, BooleanClause.Occur.MUST);
-        tasks.add(new SearchTask("IntNRQConjMedTerm", builder.build(), nrqTask.s, null, taskParser.topN, false,
+        tasks.add(new SearchTask(prefix + "ConjMedTerm", builder.build(), prefixTask.s, null, taskParser.topN, false,
                 false, Collections.<String>emptyList(), false));
       }
       for (SearchTask lowTerm : lowTerms) {
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
-        builder.add(nrqTask.q, BooleanClause.Occur.MUST);
+        builder.add(prefixTask.q, BooleanClause.Occur.MUST);
         builder.add(lowTerm.q, BooleanClause.Occur.MUST);
-        tasks.add(new SearchTask("IntNRQConjLowTerm", builder.build(), nrqTask.s, null, taskParser.topN, false,
+        tasks.add(new SearchTask(prefix + "ConjLowTerm", builder.build(), prefixTask.s, null, taskParser.topN, false,
                 false, Collections.<String>emptyList(), false));
       }
     }
 
-    taskFile.close();
-    return tasks;
   }
 }
