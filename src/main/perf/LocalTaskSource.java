@@ -32,6 +32,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.util.BytesRef;
@@ -132,6 +134,10 @@ class LocalTaskSource implements TaskSource {
   static List<Task> loadTasks(TaskParser taskParser, String filePath) throws IOException, ParseException {
     final List<Task> tasks = new ArrayList<Task>();
     final BufferedReader taskFile = new BufferedReader(new InputStreamReader(new FileInputStream(filePath), "UTF-8"), 16384);
+    List<SearchTask> intNRQ = new ArrayList<>();
+    List<SearchTask> highTerms = new ArrayList<>();
+    List<SearchTask> midTerms = new ArrayList<>();
+    List<SearchTask> lowTerms = new ArrayList<>();
     while (true) {
       String line = taskFile.readLine();
       if (line == null) {
@@ -147,10 +153,51 @@ class LocalTaskSource implements TaskSource {
         continue;
       }
 
-      tasks.add(taskParser.parseOneTask(line));
+      Task task = taskParser.parseOneTask(line);
+      tasks.add(task);
+
+      if (task instanceof SearchTask) {
+        SearchTask searchTask = (SearchTask) task;
+        if (searchTask.getCategory().equals("IntNRQ")) {
+          intNRQ.add(searchTask);
+        }
+        if (searchTask.getCategory().equals("LowTerm")) {
+          lowTerms.add(searchTask);
+        }
+        if (searchTask.getCategory().equals("MidTerm")) {
+          midTerms.add(searchTask);
+        }
+        if (searchTask.getCategory().equals("HighTerm")) {
+          highTerms.add(searchTask);
+        }
+      }
     }
+
+    for (SearchTask nrqTask : intNRQ) {
+      for (SearchTask highTerm : highTerms) {
+        BooleanQuery.Builder builder = new BooleanQuery.Builder();
+        builder.add(nrqTask.q, BooleanClause.Occur.MUST);
+        builder.add(highTerm.q, BooleanClause.Occur.MUST);
+        tasks.add(new SearchTask("IntNRQConjHighTerm", builder.build(), nrqTask.s, null, taskParser.topN, false,
+                false, Collections.<String>emptyList(), false));
+      }
+      for (SearchTask midTerm : midTerms) {
+        BooleanQuery.Builder builder = new BooleanQuery.Builder();
+        builder.add(nrqTask.q, BooleanClause.Occur.MUST);
+        builder.add(midTerm.q, BooleanClause.Occur.MUST);
+        tasks.add(new SearchTask("IntNRQConjMidTerm", builder.build(), nrqTask.s, null, taskParser.topN, false,
+                false, Collections.<String>emptyList(), false));
+      }
+      for (SearchTask lowTerm : lowTerms) {
+        BooleanQuery.Builder builder = new BooleanQuery.Builder();
+        builder.add(nrqTask.q, BooleanClause.Occur.MUST);
+        builder.add(lowTerm.q, BooleanClause.Occur.MUST);
+        tasks.add(new SearchTask("IntNRQConjLowTerm", builder.build(), nrqTask.s, null, taskParser.topN, false,
+                false, Collections.<String>emptyList(), false));
+      }
+    }
+
     taskFile.close();
     return tasks;
   }
-  
 }

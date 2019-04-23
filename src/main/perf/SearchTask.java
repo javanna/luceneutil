@@ -63,8 +63,8 @@ import java.util.List;
 
 final class SearchTask extends Task {
   private final String category;
-  private final Query q;
-  private final Sort s;
+  public final Query q;
+  public final Sort s;
   private final String group;
   private final int topN;
   private final boolean singlePassGroup;

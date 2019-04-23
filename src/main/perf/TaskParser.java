@@ -52,7 +52,7 @@ class TaskParser {
   private final Sort monthDVSort; // Month of the "last modified timestamp", SORTED doc values
   private final Sort dayOfYearDVSort; // Day of the year of the "last modified timestamp", NUMERIC doc values
   private final Sort lastModNDVSort;
-  private final int topN;
+  public final int topN;
   private final Random random;
   private final boolean doStoredLoads;
   private final IndexState state;
