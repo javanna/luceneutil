@@ -136,7 +136,7 @@ class LocalTaskSource implements TaskSource {
     final BufferedReader taskFile = new BufferedReader(new InputStreamReader(new FileInputStream(filePath), "UTF-8"), 16384);
     List<SearchTask> intNRQ = new ArrayList<>();
     List<SearchTask> highTerms = new ArrayList<>();
-    List<SearchTask> midTerms = new ArrayList<>();
+    List<SearchTask> medTerms = new ArrayList<>();
     List<SearchTask> lowTerms = new ArrayList<>();
     while (true) {
       String line = taskFile.readLine();
@@ -164,8 +164,8 @@ class LocalTaskSource implements TaskSource {
         if (searchTask.getCategory().equals("LowTerm")) {
           lowTerms.add(searchTask);
         }
-        if (searchTask.getCategory().equals("MidTerm")) {
-          midTerms.add(searchTask);
+        if (searchTask.getCategory().equals("MedTerm")) {
+          medTerms.add(searchTask);
         }
         if (searchTask.getCategory().equals("HighTerm")) {
           highTerms.add(searchTask);
@@ -181,11 +181,11 @@ class LocalTaskSource implements TaskSource {
         tasks.add(new SearchTask("IntNRQConjHighTerm", builder.build(), nrqTask.s, null, taskParser.topN, false,
                 false, Collections.<String>emptyList(), false));
       }
-      for (SearchTask midTerm : midTerms) {
+      for (SearchTask medTerm : medTerms) {
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
         builder.add(nrqTask.q, BooleanClause.Occur.MUST);
-        builder.add(midTerm.q, BooleanClause.Occur.MUST);
-        tasks.add(new SearchTask("IntNRQConjMidTerm", builder.build(), nrqTask.s, null, taskParser.topN, false,
+        builder.add(medTerm.q, BooleanClause.Occur.MUST);
+        tasks.add(new SearchTask("IntNRQConjMedTerm", builder.build(), nrqTask.s, null, taskParser.topN, false,
                 false, Collections.<String>emptyList(), false));
       }
       for (SearchTask lowTerm : lowTerms) {
